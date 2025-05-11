@@ -13,6 +13,7 @@ typedef struct node
     struct node *next;
     int row0;
     int col0;
+    int h;
 };
 
 struct node *open;
@@ -61,7 +62,7 @@ void swapTiles(struct node *inp, int oldR, int oldC, int newR, int newC)
     inp->tiles[newR][newC] = tmp;
 }
 
-void queueAdd(struct node *inp)
+/*void queueAdd(struct node *inp)
 {
     struct node *tmp;
     if (!open)
@@ -74,8 +75,40 @@ void queueAdd(struct node *inp)
     while (tmp->next)
         tmp = tmp->next;
     tmp->next = inp;
-}
+}*/
 
+// h(n) = misplaced tiles
+void addNode(struct node *inp)
+{
+    inp->h = 0;
+    inp->next = NULL;
+    for (int i = 0; i < NxN-1; i++)
+    {
+        if (inp->tiles[i/N][i%N] != i+1)
+            inp->h++;
+    }
+    if (inp->tiles[N-1][N-1] != 0)
+        inp->h++;
+    
+    if (!open)
+    {
+        open = inp;
+        return;
+    }
+
+    struct node *tmp = open;
+    while(tmp->next)
+    {
+        if (tmp->next->h < inp->h)
+        {
+            inp->next = tmp->next;
+            tmp->next = inp;
+            return;
+        }
+        tmp = tmp->next;
+    }
+    tmp->next = inp;
+}
 // 0 : Garbage, throw it out
 // 1 : Good
 int filter(struct node *cmp)
@@ -113,7 +146,7 @@ void expand()
         {
             up->parent = queued;
             assign0(up);
-            queueAdd(up);
+            addNode(up);
         }
     }
     
@@ -127,7 +160,7 @@ void expand()
         {
             down->parent = queued;
             assign0(down);
-            queueAdd(down);
+            addNode(down);
         }
     }
 
@@ -141,7 +174,7 @@ void expand()
         {
             left->parent = queued;
             assign0(left);
-            queueAdd(left);
+            addNode(left);
         }
     }
 
@@ -155,7 +188,7 @@ void expand()
         {
             right->parent = queued;
             assign0(right);
-            queueAdd(right);
+            addNode(right);
         }
     }
 }
