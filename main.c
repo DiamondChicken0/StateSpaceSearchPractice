@@ -16,6 +16,7 @@ typedef struct node
 };
 
 struct node *open;
+struct node *closed;
 
 void printANode(struct node *inp)
 {
@@ -60,20 +61,21 @@ void swapTiles(struct node *inp, int oldR, int oldC, int newR, int newC)
     inp->tiles[oldR][oldC] = inp->tiles[newR][newC];
     inp->tiles[newR][newC] = tmp;
 }
-
-void queueAdd(struct node *inp)
+void closedAdd(struct node *inp)
 {
-    struct node *tmp;
+    inp->next = closed;
+    closed = inp;
+}
+void stackAdd(struct node *inp)
+{
+    
     if (!open)
     {
         open = inp;
         return;
     }
-    tmp = open;
-
-    while (tmp->next)
-        tmp = tmp->next;
-    tmp->next = inp;
+    inp->next = open;
+    open = inp;
 }
 
 // 0 : Garbage, throw it out
@@ -88,74 +90,87 @@ int filter(struct node *cmp)
             return 0;
         chk = chk->next;
     }
+    struct node *chkCl = closed;
+    //printf("checking a node\n");
+    while (chkCl)
+    {
+        if (compareNodes(chkCl, cmp))
+            return 0;
+        chkCl = chkCl->next;
+    }
     //printf("it was good :)\n");
     return 1;
 }
 
 void expand()
 {
-    struct node *queued = open;
+    /*struct node *queued = open;
     open = open->next; // Dequeue open
 
-    queued->next = NULL;
+    queued->next = NULL;*/
 
-    assign0(queued);
+    struct node *stack = open;
+    open = open->next;
+    stack->next = NULL;
+
+    assign0(stack);
+    closedAdd(stack);
 
     struct node *up = malloc(sizeof(struct node));
-    *up = *queued;
+    *up = *stack;
     // UP
-    //struct node up = *queued;
+    //struct node up = *stack;
     //printf("Checking row0 %i\n", up.row0);
     if (up->row0 != 0)
     {
         swapTiles(up, up->row0, up->col0, up->row0 - 1, up->col0);
         if (filter(up))
         {
-            up->parent = queued;
+            up->parent = stack;
             assign0(up);
-            queueAdd(up);
+            stackAdd(up);
         }
     }
     
     // DOWN
     struct node *down = malloc(sizeof(struct node));
-    *down = *queued;
+    *down = *stack;
     if (down->row0 != N-1)
     {
         swapTiles(down, down->row0, down->col0, down->row0 + 1, down->col0);
         if (filter(down))
         {
-            down->parent = queued;
+            down->parent = stack;
             assign0(down);
-            queueAdd(down);
+            stackAdd(down);
         }
     }
 
     // LEFT
     struct node *left = malloc(sizeof(struct node));
-    *left = *queued;
+    *left = *stack;
     if (left->col0 != 0)
     {
         swapTiles(left, left->row0, left->col0, left->row0, left->col0 - 1);
         if (filter(left))
         {
-            left->parent = queued;
+            left->parent = stack;
             assign0(left);
-            queueAdd(left);
+            stackAdd(left);
         }
     }
 
     // RIGHT
     struct node *right = malloc(sizeof(struct node));
-    *right = *queued;
+    *right = *stack;
     if (right->col0 != N-1)
     {
         swapTiles(right, right->row0, right->col0, right->row0, right->col0 + 1);
         if (filter(right))
         {
-            right->parent = queued;
+            right->parent = stack;
             assign0(right);
-            queueAdd(right);
+            stackAdd(right);
         }
     }
 }
@@ -196,11 +211,12 @@ int main(int argc, char **argv)
     }
 
     open = curr;
+    //closed = curr;
     printf("Starting to solve\n");
     while (!compareNodes(curr,&goal) && open)
     {
-        printf("Running\n");
-        //printANode(curr);
+        //printf("Running\n");
+        printANode(curr);
         expand();
         curr = open;
     }
